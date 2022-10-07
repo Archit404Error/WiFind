@@ -40,105 +40,77 @@ export default function TabOneScreen({
       }
       let location = await Location.getCurrentPositionAsync({});
       setLocation(location);
+
+      const response = await fetch(
+        "https://wi-find-server-pratyush1712.vercel.app/get_classified_points"
+      );
+      setMarkers(await response.json());
     })();
-    const request = {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-    };
-    (async (request) => {
-      try {
-        await fetch(
-          "https://wi-find-server-pratyush1712.vercel.app/get_classified_points",
-          request
-        )
-          .then((resp) => {
-            return resp.json();
-          })
-          .then((data) => {
-            setMarkers(data);
-            return data;
-          })
-          .catch((err) => console.log(err));
-      } catch (err) {
-        console.error(err);
-        throw err;
-      }
-    })(request);
   }, []);
+
   useEffect(() => {
-    if (location != null && speed != null) {
-      const request = {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          latitude: location.coords.latitude + 0.1,
-          longitude: location.coords.longitude + 0.1,
-          linkspeed: speed.current,
-        }),
-      };
-      (async (request) => {
-        try {
-          await fetch(
-            "https://wi-find-server-pratyush1712.vercel.app/add_network_point",
-            request
-          )
-            .then((resp) => {
-              return resp.json();
-            })
-            .then((data) => {
-              return data;
-            })
-            .catch((err) => console.log(err));
-        } catch (err) {
-          throw err;
+    if (location && speed) {
+      fetch(
+        "https://wi-find-server-pratyush1712.vercel.app/add_network_point",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            latitude: location.coords.latitude + 0.1,
+            longitude: location.coords.longitude + 0.1,
+            linkspeed: speed.current,
+          }),
         }
-      })(request);
+      );
     }
   }, [location, speed]);
-  if (location) {
-    return (
-      <View>
-        <MapView
-          showsUserLocation={true}
-          style={styles.map}
-          region={{
+
+  if (!location) {
+    return <Text>Loading...</Text>;
+  }
+
+  return (
+    <View>
+      <MapView
+        showsUserLocation={true}
+        style={styles.map}
+        region={{
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          latitudeDelta: 0.0122,
+          longitudeDelta: 0.0121,
+        }}
+      >
+        <Marker
+          coordinate={{
             latitude: location.coords.latitude,
             longitude: location.coords.longitude,
-            latitudeDelta: 0.0122,
-            longitudeDelta: 0.0121,
           }}
-        >
-          <Marker
-            coordinate={{
-              latitude: location.coords.latitude,
-              longitude: location.coords.longitude,
-            }}
-            title={"You"}
-          />
-          {markers?.map((marker) => {
-            return (
-              <Marker
-                pinColor={
-                  marker.linkspeed_label === "high"
-                    ? "green"
-                    : marker.linkspeed_label === "medium"
-                    ? "yellow"
-                    : "red"
-                }
-                title={marker.linkspeed_label}
-                key={marker._id}
-                coordinate={{
-                  latitude: marker.latitude,
-                  longitude: marker.longitude,
-                }}
-              />
-            );
-          })}
-        </MapView>
-        <EditScreenInfo path="/screens/TabOneScreen.tsx" />
-      </View>
-    );
-  }
+          title={"You"}
+        />
+        {markers?.map((marker) => {
+          return (
+            <Marker
+              pinColor={
+                marker.linkspeed_label === "high"
+                  ? "green"
+                  : marker.linkspeed_label === "medium"
+                  ? "yellow"
+                  : "red"
+              }
+              title={marker.linkspeed_label}
+              key={marker._id as any}
+              coordinate={{
+                latitude: marker.latitude,
+                longitude: marker.longitude,
+              }}
+            />
+          );
+        })}
+      </MapView>
+      <EditScreenInfo path="/screens/TabOneScreen.tsx" />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
