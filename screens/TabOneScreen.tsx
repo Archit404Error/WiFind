@@ -1,19 +1,17 @@
 import { StyleSheet } from "react-native";
-
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import EditScreenInfo from "../components/EditScreenInfo";
 import { Text, View } from "../components/Themed";
 import { Dimensions } from "react-native";
 import { RootTabScreenProps } from "../types";
-import { AppBar } from "@react-native-material/core";
 import MapView, { Marker } from "react-native-maps";
 import { useNetInfo } from "@react-native-community/netinfo";
 import * as Location from "expo-location";
 import { LocationObject } from "expo-location";
 import React, { useState, useEffect, useRef } from "react";
-import { StatusBar } from "expo-status-bar";
 
 interface markerType {
-  _id: String;
+  _id: string;
   latitude: number;
   longitude: number;
   date_added: string;
@@ -26,6 +24,7 @@ export default function TabOneScreen({
   const netInfo = useNetInfo();
   const [location, setLocation] = useState<LocationObject | null>(null);
   const speed = useRef<Number | null>(null);
+  const userId = useRef<string | null>(null);
   const [markers, setMarkers] = useState<Array<markerType> | null>(null);
   if (netInfo.type === "wifi" && netInfo.details.ssid === "eduroam") {
     speed.current = netInfo.details.linkSpeed;
@@ -40,28 +39,34 @@ export default function TabOneScreen({
       }
       let location = await Location.getCurrentPositionAsync({});
       setLocation(location);
-
-      const response = await fetch(
-        "https://wi-find-server-pratyush1712.vercel.app/get_classified_points"
-      );
-      setMarkers(await response.json());
+      let network_points = await AsyncStorage.getItem("network_points");
+      if (network_points === null) {
+        const response = await fetch(
+          "https://wi-find-server-pratyush1712.vercel.app/get_classified_points"
+        );
+        network_points = await response.json();
+        AsyncStorage.setItem("network_points", JSON.stringify(network_points));
+      }
+      setMarkers(JSON.parse(network_points));
     })();
   }, []);
 
   useEffect(() => {
-    if (location && speed) {
+    if (location && speed.current) {
       fetch(
         "https://wi-find-server-pratyush1712.vercel.app/add_network_point",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            latitude: location.coords.latitude + 0.1,
-            longitude: location.coords.longitude + 0.1,
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
             linkspeed: speed.current,
           }),
         }
-      );
+      ).then(async (data) => {
+        userId.current = (await data.json())._id;
+      });
     }
   }, [location, speed]);
 
@@ -87,25 +92,28 @@ export default function TabOneScreen({
             longitude: location.coords.longitude,
           }}
           title={"You"}
+          pinColor={"magenta"}
         />
         {markers?.map((marker) => {
-          return (
-            <Marker
-              pinColor={
-                marker.linkspeed_label === "high"
-                  ? "green"
-                  : marker.linkspeed_label === "medium"
-                  ? "yellow"
-                  : "red"
-              }
-              title={marker.linkspeed_label}
-              key={marker._id as any}
-              coordinate={{
-                latitude: marker.latitude,
-                longitude: marker.longitude,
-              }}
-            />
-          );
+          if (marker._id !== userId.current) {
+            return (
+              <Marker
+                pinColor={
+                  marker.linkspeed_label === "high"
+                    ? "green"
+                    : marker.linkspeed_label === "medium"
+                    ? "yellow"
+                    : "red"
+                }
+                title={marker.linkspeed_label}
+                key={marker._id as any}
+                coordinate={{
+                  latitude: marker.latitude,
+                  longitude: marker.longitude,
+                }}
+              />
+            );
+          }
         })}
       </MapView>
       <EditScreenInfo path="/screens/TabOneScreen.tsx" />
