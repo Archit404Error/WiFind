@@ -90,7 +90,7 @@ export default function TabOneScreen({
         />
         {markers.map(marker =>
           <Marker
-            pinColor={marker.speed > 100 ? "red" : (marker.speed > 400 ? "yellow" : "green")}
+            pinColor={marker.speed <= 100 ? "red" : (marker.speed <= 400 ? "yellow" : "green")}
             title={`Speed: ${marker.speed}`}
             key={marker._id as any}
             coordinate={{
