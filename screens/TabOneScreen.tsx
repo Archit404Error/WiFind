@@ -3,21 +3,20 @@ import { StyleSheet } from "react-native";
 import EditScreenInfo from "../components/EditScreenInfo";
 import { Text, View } from "../components/Themed";
 import { Dimensions } from "react-native";
-import { RootTabScreenProps } from "../types";
-import { AppBar } from "@react-native-material/core";
+import { RootTabScreenProps, successResponse } from "../types";
 import MapView, { Marker } from "react-native-maps";
 import { useNetInfo } from "@react-native-community/netinfo";
 import * as Location from "expo-location";
 import { LocationObject } from "expo-location";
 import React, { useState, useEffect, useRef } from "react";
-import { StatusBar } from "expo-status-bar";
+import { API_URL } from "../constants";
 
-interface markerType {
-  _id: String;
+interface marker {
+  _id: string;
   latitude: number;
   longitude: number;
-  date_added: string;
-  linkspeed_label: string;
+  date: Date;
+  speed: number;
 }
 
 export default function TabOneScreen({
@@ -25,9 +24,10 @@ export default function TabOneScreen({
 }: RootTabScreenProps<"TabOne">) {
   const netInfo = useNetInfo();
   const [location, setLocation] = useState<LocationObject | null>(null);
-  const speed = useRef<Number | null>(null);
-  const [markers, setMarkers] = useState<Array<markerType> | null>(null);
-  if (netInfo.type === "wifi" && netInfo.details.ssid === "eduroam") {
+  const speed = useRef<number | null>(null);
+  const [markers, setMarkers] = useState<Array<marker>>([]);
+  console.log(netInfo.type)
+  if (netInfo.type === "wifi") {
     speed.current = netInfo.details.linkSpeed;
   }
 
@@ -41,24 +41,24 @@ export default function TabOneScreen({
       let location = await Location.getCurrentPositionAsync({});
       setLocation(location);
 
-      const response = await fetch(
-        "https://wi-find-server-pratyush1712.vercel.app/get_classified_points"
-      );
-      setMarkers(await response.json());
+      const response = await fetch(`${API_URL}/points/all`);
+      setMarkers((await response.json()).data);
+      console.log(markers)
     })();
   }, []);
 
   useEffect(() => {
     if (location && speed) {
       fetch(
-        "https://wi-find-server-pratyush1712.vercel.app/add_network_point",
+        `${API_URL}/points/point`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             latitude: location.coords.latitude + 0.1,
             longitude: location.coords.longitude + 0.1,
-            linkspeed: speed.current,
+            speed: speed.current,
+            date: Date.now(),
           }),
         }
       );
@@ -86,27 +86,18 @@ export default function TabOneScreen({
             latitude: location.coords.latitude,
             longitude: location.coords.longitude,
           }}
-          title={"You"}
+          title={`You (speed: ${speed.current})`}
         />
-        {markers?.map((marker) => {
-          return (
-            <Marker
-              pinColor={
-                marker.linkspeed_label === "high"
-                  ? "green"
-                  : marker.linkspeed_label === "medium"
-                  ? "yellow"
-                  : "red"
-              }
-              title={marker.linkspeed_label}
-              key={marker._id as any}
-              coordinate={{
-                latitude: marker.latitude,
-                longitude: marker.longitude,
-              }}
-            />
-          );
-        })}
+        {markers.map(marker =>
+          <Marker
+            pinColor={marker.speed > 100 ? "red" : (marker.speed > 400 ? "yellow" : "green")}
+            title={`Speed: ${marker.speed}`}
+            key={marker._id as any}
+            coordinate={{
+              latitude: marker.latitude,
+              longitude: marker.longitude,
+            }}
+          />)}
       </MapView>
       <EditScreenInfo path="/screens/TabOneScreen.tsx" />
     </View>
