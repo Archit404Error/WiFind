@@ -40,7 +40,7 @@ export default function TabOneScreen({
       let location = await Location.getCurrentPositionAsync({});
       setLocation(location);
       let network_points = await AsyncStorage.getItem("network_points");
-      if (network_points === null) {
+      if (network_points === null || netInfo.isConnected) {
         const response = await fetch(
           "https://wi-find-server-pratyush1712.vercel.app/get_classified_points"
         );
