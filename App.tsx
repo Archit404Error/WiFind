@@ -14,8 +14,8 @@ export default function App() {
       <SafeAreaProvider>
         <AppBar
           title="Cornell Wi-Find"
-          subtitle="Find High Speed Wifi Locations On Campus"
-          style={{ paddingTop: 40, paddingBottom: 10, backgroundColor: "red" }}
+          subtitle="Discover the best wifi on campus"
+          style={{ paddingTop: 40, paddingBottom: 10, backgroundColor: "#e85d68" }}
         />
         <StatusBar style="auto" />
         <Navigation colorScheme={colorScheme} />

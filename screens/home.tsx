@@ -19,14 +19,14 @@ interface marker {
   speed: number;
 }
 
-export default function TabOneScreen({
+export default function HomeScreen({
   navigation,
-}: RootTabScreenProps<"TabOne">) {
+}: RootTabScreenProps<"Home">) {
   const netInfo = useNetInfo();
   const [location, setLocation] = useState<LocationObject | null>(null);
   const speed = useRef<Number | null>(null);
   const userId = useRef<string | null>(null);
-  const [markers, setMarkers] = useState<Array<marker> | null>(null);
+  const [markers, setMarkers] = useState<Array<marker>>([]);
   if (netInfo.type === "wifi" && netInfo.details.ssid === "eduroam") {
     speed.current = netInfo.details.linkSpeed;
   }
@@ -40,13 +40,14 @@ export default function TabOneScreen({
       }
       let location = await Location.getCurrentPositionAsync({});
       setLocation(location);
-      let network_points = await AsyncStorage.getItem("network_points");
-      if (network_points === null || netInfo.isConnected) {
+
+      let networkPoints = await AsyncStorage.getItem("network_points");
+      if (networkPoints === null || netInfo.isConnected) {
         const response = await fetch(`${API_URL}/points/all`);
-        network_points = JSON.stringify((await response.json()).data);
-        AsyncStorage.setItem("network_points", network_points);
+        networkPoints = JSON.stringify((await response.json()).data);
+        AsyncStorage.setItem("network_points", networkPoints);
       }
-      setMarkers(JSON.parse(network_points));
+      setMarkers(JSON.parse(networkPoints));
     })();
   }, []);
 
@@ -96,8 +97,8 @@ export default function TabOneScreen({
               marker.speed <= 100
                 ? "red"
                 : marker.speed <= 400
-                ? "yellow"
-                : "green"
+                  ? "yellow"
+                  : "green"
             }
             title={`Speed: ${marker.speed}`}
             key={marker._id as any}
@@ -108,7 +109,6 @@ export default function TabOneScreen({
           />
         ))}
       </MapView>
-      <EditScreenInfo path="/screens/TabOneScreen.tsx" />
     </View>
   );
 }
